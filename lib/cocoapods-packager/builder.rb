@@ -25,10 +25,57 @@ module Pod
       when :static_framework
         build_static_framework
       when :dynamic_framework
+=======
+      @platform = platform
+      @prelink = prelink
+      @static_sandbox_root = @static_sandbox.root.to_s
+      if @dynamic
+        @static_sandbox_root = "#{@static_sandbox_root}/#{@static_sandbox.root.to_s.split('/').last}"
+        @dynamic_sandbox_root = "#{@config.sandbox_root}/#{@dynamic_sandbox.root.to_s.split('/').last}"
+      end
+
+      @public_headers_root = @static_sandbox.public_headers.root
+      @file_accessors = @installer.pod_targets.select {|t| t.pod_name == @spec.name }.flat_map(&:file_accessors)
+    end
+
+    def build(package_type)
+      prepare_installer
+      if package_type == :library
+        build_static_library
+      elsif package_type == :static_framework
+        build_static_framework
+      elsif package_type == :dynamic_framework
+>>>>>>> origin/manu-feature-prelink
         build_dynamic_framework
       end
     end
 
+<<<<<<< HEAD
+=======
+    def prepare_installer
+      if @prelink
+        prelink_libs = vendored_libraries
+        prelink_libs += @installer.pod_targets.map do |target|
+          next if target.product_module_name == @spec.name
+
+          if target.should_build?
+            File.join(root, "lib#{target.product_module_name}.a")
+          end
+        end.compact
+        @installer.pods_project.targets.each do |target|
+          target.build_configurations.each do |config|
+            if target.name == @spec.name
+              config.build_settings['GENERATE_MASTER_OBJECT_FILE'] = 'YES'
+              config.build_settings['PRELINK_FLAGS'] = '-objc_abi_version 2'
+              config.build_settings['PRELINK_LIBS'] = "#{prelink_libs.join(' ')}"
+            end              
+          end
+        end
+        @installer.pods_project.save
+      end
+    end
+
+>>>>>>> origin/manu-feature-prelink
     def build_static_library
       UI.puts("Building static library #{@spec} with configuration #{@config}")
 
@@ -38,6 +85,7 @@ module Pod
       platform_path = Pathname.new(@platform.name.to_s)
       platform_path.mkdir unless platform_path.exist?
 
+<<<<<<< HEAD
       output = platform_path + "lib#{@spec.name}.a"
 
       if @platform.name == :ios
@@ -140,18 +188,30 @@ module Pod
       end
     end
 
+<<<<<<< HEAD
     def build_static_library_for_ios(output)
+=======
+    def build_static_lib_for_ios(output)
+>>>>>>> origin/manu-feature-prelink
       static_libs = static_libs_in_sandbox('build') + static_libs_in_sandbox('build-sim') + vendored_libraries
       libs = ios_architectures.map do |arch|
         library = "#{@static_sandbox_root}/build/package-#{arch}.a"
         `libtool -arch_only #{arch} -static -o #{library} #{static_libs.join(' ')}`
         library
       end
+<<<<<<< HEAD
 
       `lipo -create -output #{output} #{libs.join(' ')}`
     end
 
     def build_static_library_for_mac(output)
+=======
+      
+      `lipo -create -output #{output} #{libs.join(' ')}`
+    end
+
+    def build_static_lib_for_mac(output)
+>>>>>>> origin/manu-feature-prelink
       static_libs = static_libs_in_sandbox + vendored_libraries
       `libtool -static -o #{output} #{static_libs.join(' ')}`
     end
@@ -171,7 +231,7 @@ module Pod
       FileUtils.rm_rf("#{@static_sandbox_root}/Headers/Public/#{@spec.name}")
       FileUtils.rm_rf("#{@static_sandbox_root}/Headers/Private/#{@spec.name}")
 
-      # Equivalent to removing derrived data
+      # Equivalent to removing derived data
       FileUtils.rm_rf('Pods/build')
     end
 
@@ -193,7 +253,7 @@ module Pod
     end
 
     def copy_headers
-      headers_source_root = "#{@public_headers_root}/#{@spec.name}"
+      headers_source_root = "#{@public_headers_root}/#{@spec.name}/#{@spec.name}"
 
       Dir.glob("#{headers_source_root}/**/*.h").
         each { |h| `ditto #{h} #{@fwk.headers_path}/#{h.sub(headers_source_root, '')}` }
@@ -202,8 +262,18 @@ module Pod
       # otherwise check if a header exists that is equal to 'spec.name', if so
       # create a default 'module_map' one using it.
       if !@spec.module_map.nil?
+<<<<<<< HEAD
         module_map_file = @file_accessors.flat_map(&:module_map).first
+=======
+        
+        puts "=====MODULEMAP=====\n#{@spec.module_map}"
+        module_map_file = @file_accessors.flat_map(&:module_map).first
+        puts "=====FILE=====\n#{module_map_file}"
+
+>>>>>>> origin/manu-feature-prelink
         module_map = File.read(module_map_file) if Pathname(module_map_file).exist?
+        puts "=====MAP=====\n#{module_map}"
+
       elsif File.exist?("#{@public_headers_root}/#{@spec.name}/#{@spec.name}.h")
         module_map = <<MAP
 framework module #{@spec.name} {
@@ -266,12 +336,21 @@ MAP
       end
     end
 
-    def static_libs_in_sandbox(build_dir = 'build')
+    def static_libraries(installer, root)
+      +        installer.pod_targets.map do |target|
+      +          next if target.product_module_name == @spec.name
+      +
+      +          if target.should_build?
+      +            File.join(root, "lib#{target.product_module_name}.a")
+      +          end
+      +        end.compact
+      +      end
+    def static_libs_in_dir(dir)
       if @exclude_deps
         UI.puts 'Excluding dependencies'
-        Dir.glob("#{@static_sandbox_root}/#{build_dir}/lib#{@spec.name}.a")
+        Dir.glob("#{dir}/lib#{@spec.name}.a")
       else
-        Dir.glob("#{@static_sandbox_root}/#{build_dir}/lib*.a")
+        Dir.glob("#{dir}/lib*.a")
       end
     end
 
@@ -286,6 +365,12 @@ MAP
                        end
       libs = file_accessors.flat_map(&:vendored_static_frameworks).map { |f| f + f.basename('.*') } || []
       libs += file_accessors.flat_map(&:vendored_static_libraries)
+=======
+
+      libs = []
+      libs += @file_accessors.flat_map(&:vendored_static_frameworks).map{ |f| f + f.basename}
+      libs += @file_accessors.flat_map(&:vendored_static_libraries)
+>>>>>>> origin/manu-feature-prelink
       @vendored_libraries = libs.compact.map(&:to_s)
       @vendored_libraries
     end
@@ -300,6 +385,7 @@ MAP
     end
 
     def ios_build_options
+<<<<<<< HEAD
       "ARCHS=\'#{ios_architectures.join(' ')}\' OTHER_CFLAGS=\'-fembed-bitcode -Qunused-arguments\'"
     end
 
@@ -311,6 +397,13 @@ MAP
       else
         %w(x86_64 i386 arm64 arm64e armv7 armv7s)
       end
+=======
+      return "ARCHS=\'#{ios_architectures.join(' ')}\' OTHER_CFLAGS=\'-fembed-bitcode -Qunused-arguments\'"
+    end
+
+    def ios_architectures
+      archs = ['x86_64', 'i386', 'arm64', 'armv7', 'armv7s']
+>>>>>>> origin/manu-feature-prelink
       vendored_libraries.each do |library|
         archs = `lipo -info #{library}`.split & archs
       end

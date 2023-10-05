@@ -1,0 +1,7 @@
+{
+	"couch": true,
+	"node": true,
+	"rhino": true,
+	"closure": true,
+	"forin": true
+}

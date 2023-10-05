@@ -26,6 +26,7 @@ module Pod
         static_installer.install!
 
         unless static_installer.nil?
+          prelink_libs = vendored_libraries(static_installer, "$(PODS_ROOT)") | static_libraries(static_installer, "$(CONFIGURATION_BUILD_DIR)")
           static_installer.pods_project.targets.each do |target|
             target.build_configurations.each do |config|
               config.build_settings['CLANG_MODULES_AUTOLINK'] = 'NO'
@@ -41,11 +42,17 @@ module Pod
       def podfile_from_spec(path, spec_name, platform_name, deployment_target, subspecs, sources)
         options = {}
         if path
+<<<<<<< HEAD
           if @local
             options[:path] = path
           else
             options[:podspec] = path
           end
+=======
+          options[:path] = path
+        else
+          options[:path] = '.'
+>>>>>>> origin/manu-feature-prelink
         end
         options[:subspecs] = subspecs if subspecs
         Pod::Podfile.new do
@@ -58,7 +65,25 @@ module Pod
                    :deterministic_uuids => false)
 
           target('packager') do
+<<<<<<< HEAD
             inherit! :complete
+=======
+            if path
+              if subspecs
+                subspecs.each do |subspec|
+                  pod spec_name + '/' + subspec, :path => path
+                end
+              else
+                pod spec_name, :path => path
+              end
+            elsif subspecs
+              subspecs.each do |subspec|
+                pod spec_name + '/' + subspec, :path => '.'
+              end
+            else
+              pod spec_name, :path => '.'
+            end
+>>>>>>> origin/manu-feature-prelink
           end
         end
       end
@@ -91,7 +116,11 @@ module Pod
         path = Pathname.new(Dir.pwd).join(path) unless path.absolute?
         return unless path.exist?
 
+<<<<<<< HEAD
         @path = path.expand_path
+=======
+        @path = Pathname.new(path).expand_path
+>>>>>>> origin/manu-feature-prelink
 
         if @path.directory?
           help! @path + ': is a directory.'

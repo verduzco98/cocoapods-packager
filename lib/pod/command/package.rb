@@ -41,6 +41,7 @@ module Pod
                         end
         @force = argv.flag?('force')
         @mangle = argv.flag?('mangle', true)
+        @prelink = argv.flag?('prelink', false)
         @bundle_identifier = argv.option('bundle-identifier', nil)
         @exclude_deps = argv.flag?('exclude-deps', false)
         @name = argv.shift_argument
@@ -55,6 +56,7 @@ module Pod
         @source_dir = Dir.pwd
         @is_spec_from_path = false
         @spec = spec_with_path(@name)
+<<<<<<< HEAD
         @is_spec_from_path = true if @spec
         @spec ||= spec_with_name(@name)
         super
@@ -144,6 +146,7 @@ module Pod
       end
 
       def perform_build(platform, static_sandbox, dynamic_sandbox, static_installer)
+<<<<<<< HEAD
         static_sandbox_root = config.sandbox_root.to_s
 
         if @dynamic
